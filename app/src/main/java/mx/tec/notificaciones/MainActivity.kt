@@ -23,4 +23,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    // La app se ve / deja de verse (Home, otra app, pantalla apagada)
+    override fun onStart() {
+        super.onStart()
+        EstadoApp.enPantalla = true
+    }
+
+    override fun onStop() {
+        super.onStop()
+        EstadoApp.enPantalla = false
+    }
 }

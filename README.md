@@ -7,7 +7,7 @@ Una sola pantalla con cuatro tarjetas:
 | # | Ejemplo | Qué muestra |
 |---|---------|-------------|
 | 1 | **Toast** | Aviso rápido dentro de la app (`LENGTH_SHORT` y `LENGTH_LONG`). No necesita permiso. |
-| 2 | **Notificación inmediata** | Canal + permiso + `NotificationCompat.Builder` + `notify()`. Al tocarla abre la app. |
+| 2 | **Notificación inmediata** | Simula sincronizar asistencias (5 s). Al terminar: si sigues en la app, un Toast; si te saliste, una notificación. Al tocarla abre la app. |
 | 3 | **Notificación en 10 segundos** | La programa WorkManager. Cierra la app y espera: llega igual. |
 | 4 | **Recordatorio diario** | El usuario elige la hora y lo activa o desactiva con un switch. Se guarda con DataStore y se programa con WorkManager. |
 
@@ -15,7 +15,8 @@ Una sola pantalla con cuatro tarjetas:
 
 ```
 app/src/main/java/mx/tec/notificaciones/
-├── MainActivity.kt                 crea el canal y muestra la pantalla
+├── MainActivity.kt                 crea el canal, muestra la pantalla y actualiza EstadoApp
+├── EstadoApp.kt                    ¿el usuario está viendo la app? (onStart / onStop)
 ├── notificaciones/
 │   ├── Notificaciones.kt           Pasos 1–3: crearCanal(), tienePermiso(), mostrarNotificacion()
 │   ├── RecordatorioWorker.kt       Worker que muestra la notificación
@@ -24,6 +25,7 @@ app/src/main/java/mx/tec/notificaciones/
 │   └── PrefsRecordatorio.kt        DataStore: activo, hora y minuto
 └── ui/
     ├── NotificacionesScreen.kt     Paso 4: pedir permiso y las cuatro tarjetas
+    ├── SincronizacionViewModel.kt  simula la sincronización y decide: Toast o notificación
     ├── RecordatorioViewModel.kt    une DataStore (lo que eligió el usuario) con WorkManager
     └── theme/Theme.kt
 ```
@@ -44,6 +46,7 @@ El permiso `POST_NOTIFICATIONS` está en `AndroidManifest.xml`.
 
 Diferencias pequeñas con las diapositivas:
 
+- **¿Cuándo se dispara una notificación inmediata?** Cuando tu código la llama en respuesta a algo que pasó mientras el usuario no veía la app (terminó una sincronización, volvió el internet, falló una subida). Por eso la tarjeta 2 no es un botón "Enviar ahora": el evento es el fin de la sincronización, y solo se notifica si la app no está en pantalla.
 - `mostrarNotificacion()` recibe un `id`. Cada ejemplo usa uno distinto para que no se reemplacen entre sí.
 - La pantalla usa `conPermiso { … }`, que guarda la acción y la ejecuta cuando el usuario acepta el permiso. Así sirve igual para los tres botones y para el switch.
 - El Worker recibe título, texto e id por `inputData`, así el mismo Worker sirve para la prueba y para el diario.
@@ -53,7 +56,10 @@ Diferencias pequeñas con las diapositivas:
 
 1. Usa un emulador o teléfono con **Android 13 o más nuevo** para ver el diálogo del permiso.
 2. **Toast:** toca *Corto* y *Largo*.
-3. **Inmediata:** toca *Enviar ahora*, acepta el permiso y baja la barra de notificaciones. Tócala: abre la app.
+3. **Inmediata:** toca *Sincronizar asistencias* y acepta el permiso.
+   - Quédate en la app: a los 5 s aparece un Toast.
+   - Vuelve a tocarlo y presiona Home: a los 5 s llega la notificación. Tócala: abre la app.
+   - La simulación vive en el ViewModel; si quitas la app de recientes se cancela. En una app real se haría con un Worker.
 4. **10 segundos:** toca *Programar*, cierra la app desde recientes y espera.
 5. **Diario:** elige una hora 2 o 3 minutos adelante y activa el switch. Puede llegar unos minutos tarde.
    - Para ver el trabajo programado: **App Inspection > Background Task Inspector** en Android Studio.

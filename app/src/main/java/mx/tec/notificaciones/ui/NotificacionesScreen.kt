@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,15 +46,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import mx.tec.notificaciones.notificaciones.ID_INMEDIATA
-import mx.tec.notificaciones.notificaciones.mostrarNotificacion
 import mx.tec.notificaciones.notificaciones.programarPrueba
 import mx.tec.notificaciones.notificaciones.tienePermiso
 
 @Composable
-fun NotificacionesScreen(vm: RecordatorioViewModel = viewModel()) {
+fun NotificacionesScreen(
+    vm: RecordatorioViewModel = viewModel(),
+    syncVm: SincronizacionViewModel = viewModel()
+) {
     val context = LocalContext.current
     val config by vm.config.collectAsStateWithLifecycle()
+    val sincronizando by syncVm.sincronizando.collectAsStateWithLifecycle()
     var mostrarDialogoHora by remember { mutableStateOf(false) }
 
     // ---- Paso 4 · Pedir permiso desde la pantalla ----
@@ -112,22 +116,25 @@ fun NotificacionesScreen(vm: RecordatorioViewModel = viewModel()) {
                 }
             }
 
-            // 2. Notificación inmediata
+            // 2. Notificación inmediata: la dispara un evento (terminó la sincronización)
             Seccion(
                 icono = Icons.AutoMirrored.Filled.Send,
                 titulo = "2. Notificación inmediata",
-                descripcion = "Aparece en la barra aunque cambies de app. Al tocarla, abre esta app."
+                descripcion = "Simula enviar asistencias a la API (5 s). Si te quedas en la app, " +
+                    "ves un Toast. Si te sales, al terminar llega una notificación."
             ) {
-                Button(onClick = {
-                    conPermiso {
-                        mostrarNotificacion(
-                            context,
-                            "¿Ya tomaste lista?",
-                            "Registra la asistencia de hoy",
-                            ID_INMEDIATA
-                        )
+                if (sincronizando) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text("Sincronizando… sal de la app para ver la notificación")
                     }
-                }) { Text("Enviar ahora") }
+                } else {
+                    Button(onClick = {
+                        // Pedimos el permiso antes, por si el usuario se sale de la app
+                        conPermiso { syncVm.sincronizar() }
+                    }) { Text("Sincronizar asistencias") }
+                }
             }
 
             // 3. Notificación programada en 10 segundos (WorkManager)
