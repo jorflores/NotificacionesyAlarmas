@@ -1,6 +1,7 @@
 package mx.tec.notificaciones.ui
 
 import android.Manifest
+import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import mx.tec.notificaciones.notificaciones.formatearHora
 import mx.tec.notificaciones.notificaciones.programarPrueba
 import mx.tec.notificaciones.notificaciones.tienePermiso
 
@@ -173,7 +175,7 @@ fun NotificacionesScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Hora", modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = { mostrarDialogoHora = true }) {
-                        Text("%02d:%02d".format(config.hora, config.minuto))
+                        Text(formatearHora(context, config.hora, config.minuto))
                     }
                 }
             }
@@ -226,10 +228,12 @@ private fun DialogoHora(
     onAceptar: (Int, Int) -> Unit,
     onCancelar: () -> Unit
 ) {
+    // Mismo formato que el teléfono: 12 h (a. m. / p. m.) o 24 h
+    val usa24Horas = DateFormat.is24HourFormat(LocalContext.current)
     val estado = rememberTimePickerState(
         initialHour = horaInicial,
         initialMinute = minutoInicial,
-        is24Hour = true
+        is24Hour = usa24Horas
     )
     AlertDialog(
         onDismissRequest = onCancelar,

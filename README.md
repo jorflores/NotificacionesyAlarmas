@@ -61,7 +61,8 @@ Diferencias pequeñas con las diapositivas:
    - Vuelve a tocarlo y presiona Home: a los 5 s llega la notificación. Tócala: abre la app.
    - La simulación vive en el ViewModel; si quitas la app de recientes se cancela. En una app real se haría con un Worker.
 4. **10 segundos:** toca *Programar*, cierra la app desde recientes y espera.
-5. **Diario:** elige una hora 2 o 3 minutos adelante y activa el switch. Puede llegar unos minutos tarde.
+5. **Diario:** elige una hora 2 o 3 minutos adelante y activa el switch. Un Toast confirma cuándo llegará ("Próximo recordatorio: hoy a las 12:19 a. m."). Puede llegar unos minutos tarde.
+   - El reloj usa el mismo formato que el teléfono (12 h o 24 h). Revisa a. m. / p. m.: si eliges una hora que ya pasó, se programa para mañana.
    - Para ver el trabajo programado: **App Inspection > Background Task Inspector** en Android Studio.
    - Cierra y vuelve a abrir la app: el switch y la hora siguen igual (DataStore).
 

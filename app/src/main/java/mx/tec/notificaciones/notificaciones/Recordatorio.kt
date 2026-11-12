@@ -1,11 +1,13 @@
 package mx.tec.notificaciones.notificaciones
 
 import android.content.Context
+import android.text.format.DateFormat
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.Calendar
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 private const val TRABAJO_DIARIO = "recordatorio_diario"
@@ -31,17 +33,21 @@ fun programarPrueba(context: Context) {
 // ---------------------------------------------------------------------------
 // Opcional: recordatorio diario a una hora elegida por el usuario
 // ---------------------------------------------------------------------------
-fun programarRecordatorio(context: Context, hora: Int, minuto: Int) {
+/** Programa el aviso diario y regresa cuándo será el próximo (en milisegundos). */
+fun programarRecordatorio(context: Context, hora: Int, minuto: Int): Long {
     // ¿Cuánto falta para la próxima vez que sea esa hora?
     val ahora = Calendar.getInstance()
-    val objetivo = (ahora.clone() as Calendar).apply {
-        set(Calendar.HOUR_OF_DAY, hora)
-        set(Calendar.MINUTE, minuto)
+    val inicioDeEsteMinuto = (ahora.clone() as Calendar).apply {
         set(Calendar.SECOND, 0)
         set(Calendar.MILLISECOND, 0)
-        if (before(ahora)) add(Calendar.DAY_OF_MONTH, 1)  // ya pasó hoy: mañana
     }
-    val espera = objetivo.timeInMillis - ahora.timeInMillis
+    val objetivo = (inicioDeEsteMinuto.clone() as Calendar).apply {
+        set(Calendar.HOUR_OF_DAY, hora)
+        set(Calendar.MINUTE, minuto)
+        // Ya pasó hoy: mañana. Si es el minuto actual (12:16 y son 12:16:40), cuenta como hoy.
+        if (before(inicioDeEsteMinuto)) add(Calendar.DAY_OF_MONTH, 1)
+    }
+    val espera = maxOf(0L, objetivo.timeInMillis - ahora.timeInMillis)
 
     val diario = PeriodicWorkRequestBuilder<RecordatorioWorker>(1, TimeUnit.DAYS)
         .setInitialDelay(espera, TimeUnit.MILLISECONDS)
@@ -61,6 +67,28 @@ fun programarRecordatorio(context: Context, hora: Int, minuto: Int) {
         ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
         diario
     )
+    return objetivo.timeInMillis
+}
+
+/** "8:00 a. m." o "08:00", según el formato de hora que use el teléfono. */
+fun formatearHora(context: Context, millis: Long): String =
+    DateFormat.getTimeFormat(context).format(Date(millis))
+
+fun formatearHora(context: Context, hora: Int, minuto: Int): String {
+    val cal = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, hora)
+        set(Calendar.MINUTE, minuto)
+    }
+    return formatearHora(context, cal.timeInMillis)
+}
+
+/** "hoy" o "mañana", para avisarle al usuario cuándo llegará. */
+fun diaRelativo(millis: Long): String {
+    val hoy = Calendar.getInstance()
+    val dia = Calendar.getInstance().apply { timeInMillis = millis }
+    val mismoDia = hoy.get(Calendar.YEAR) == dia.get(Calendar.YEAR) &&
+        hoy.get(Calendar.DAY_OF_YEAR) == dia.get(Calendar.DAY_OF_YEAR)
+    return if (mismoDia) "hoy" else "mañana"
 }
 
 fun cancelarRecordatorio(context: Context) {
