@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- El tema real lo pone Compose (ui/theme/Theme.kt); este solo evita la barra de título -->
+    <style name="Theme.NotificacionesyAlarmas" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
